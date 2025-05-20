@@ -1,13 +1,11 @@
-import fastapi
-import uvicorn
-from fastapi import Request, File, UploadFile, Form
+from fastapi import File, UploadFile, Form, HTTPException, FastAPI
 from api.app.services.portfolio_optimizer import PortfolioOptimizer
 
-app = fastapi.FastAPI()
+app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello, World Madafaca!"}
+    return {"message": "Fintual Portfolio Optimizer"}
 
 @app.post("/optimize-portfolio")
 async def optimize_portfolio(
@@ -15,11 +13,17 @@ async def optimize_portfolio(
     risk_level: float = Form(...),
     max_weight: float = Form(...)
 ):
-    portfolio_optimizer = PortfolioOptimizer(file, risk_level, max_weight)
+    try:
+        # Initialize portfolio optimizer
+        portfolio_optimizer = PortfolioOptimizer(file, risk_level, max_weight)
 
-    data = portfolio_optimizer.read_and_clean_file()
-    cvars = portfolio_optimizer.calculate_cvar(data)
-    optimal_weights = portfolio_optimizer.optimize_portfolio(data, cvars, max_weight)
-    output_json = portfolio_optimizer.generate_output(optimal_weights)
+        # Parse input file and clean data
+        portfolio_optimizer.clean_data()
 
-    return output_json
+        # Execute optimization
+        portfolio_optimizer.optimize_portfolio()
+
+        return portfolio_optimizer.get_result()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
